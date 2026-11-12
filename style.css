@@ -1,0 +1,212 @@
+/* ========================================
+   1. 基本設定・変数
+   ======================================== */
+:root {
+    --bg-color: #121214;
+    --card-bg: #1e1e24;
+    --text-primary: #ffffff;
+    --text-secondary: #a0a0b0;
+    --accent-color: #6366f1;
+    --accent-hover: #4f46e5;
+    --danger-color: #ef4444;
+    --danger-hover: #dc2626;
+    --disabled-color: #3f3f46;
+    --border-color: #2e2e38;
+    --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body.dark-theme {
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    font-family: var(--font-main);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+/* ========================================
+   2. レイアウト容器
+   ======================================== */
+.app-container {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 32px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* ========================================
+   3. ヘッダー
+   ======================================== */
+.app-header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.app-header h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--accent-color);
+}
+
+.subtitle {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+/* ========================================
+   4. 入力・選択セクション
+   ======================================== */
+.selection-section,
+.target-setting-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+select,
+input[type="number"] {
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    padding: 10px 12px;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+select:focus,
+input[type="number"]:focus {
+    border-color: var(--accent-color);
+}
+
+/* ========================================
+   5. タイマー表示
+   ======================================== */
+.timer-display-section {
+    text-align: center;
+    margin: 28px 0;
+}
+
+.timer-card {
+    font-size: 3.2rem;
+    font-weight: 700;
+    font-family: monospace;
+    letter-spacing: 2px;
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px 0;
+    margin-bottom: 8px;
+}
+
+.status-message {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+/* 超過時の表示スタイル（JSで追加用） */
+.status-message.overtime {
+    color: #f59e0b;
+    font-weight: bold;
+}
+
+/* ========================================
+   6. ボタン
+   ======================================== */
+.controls-section {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 28px;
+}
+
+.btn {
+    flex: 1;
+    padding: 12px 0;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, opacity 0.2s;
+}
+
+.primary-btn {
+    background-color: var(--accent-color);
+    color: #ffffff;
+}
+
+.primary-btn:hover:not(:disabled) {
+    background-color: var(--accent-hover);
+}
+
+.secondary-btn {
+    background-color: #374151;
+    color: #ffffff;
+}
+
+.danger-btn {
+    background-color: var(--danger-color);
+    color: #ffffff;
+}
+
+.danger-btn:hover:not(:disabled) {
+    background-color: var(--danger-hover);
+}
+
+.btn:disabled {
+    background-color: var(--disabled-color);
+    color: #71717a;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* ========================================
+   7. ログエリア
+   ======================================== */
+.log-section {
+    border-top: 1px solid var(--border-color);
+    padding-top: 20px;
+}
+
+.log-section h2 {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+}
+
+#log-list {
+    list-style: none;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+#log-list li {
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    padding: 8px 12px;
+    background-color: var(--bg-color);
+    border-radius: 6px;
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+}
