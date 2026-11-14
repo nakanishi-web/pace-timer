@@ -46,9 +46,7 @@ targetMinutesInput.addEventListener('input', () => {
     }
 });
 
-// ========================================
 // スタートボタンの処理
-// ========================================
 startBtn.addEventListener('click', () => {
     if (!isRunning) {
         // 再開でない場合は、現在の入力値を目標秒数として保持
@@ -85,9 +83,7 @@ startBtn.addEventListener('click', () => {
     }
 });
 
-// ========================================
 // 一時停止ボタンの処理
-// ========================================
 pauseBtn.addEventListener('click', () => {
     if (isRunning) {
         clearInterval(timerId);
@@ -100,12 +96,10 @@ pauseBtn.addEventListener('click', () => {
     }
 });
 
-// ========================================
 // リセット（終了・記録）ボタンの処理
-// ========================================
 resetBtn.addEventListener('click', () => {
-    // 稼働中または一時停止中だった場合、ログに残す
-    if (isRunning || isPaused) {
+    // 💡 稼働中または一時停止中で、かつ「30秒以上」計測していた場合のみログに残す
+    if ((isRunning || isPaused) && elapsedSeconds >= 30) {
         addLog();
     }
 
@@ -125,9 +119,7 @@ resetBtn.addEventListener('click', () => {
     updateDisplay();
 });
 
-// ========================================
 // ログ追加関数
-// ========================================
 function addLog() {
     const purposeText = purposeSelect.options[purposeSelect.selectedIndex].text;
     const now = new Date();
