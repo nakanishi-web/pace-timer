@@ -46,6 +46,7 @@ targetMinutesInput.addEventListener('input', () => {
     }
 });
 
+// ========================================
 // スタートボタンの処理
 startBtn.addEventListener('click', () => {
     if (!isRunning) {
@@ -126,6 +127,25 @@ function addLog() {
     const timeString = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     
     const liItem = document.createElement('li');
-    liItem.innerHTML = `<span>[${timeString}] ${purposeText} (計 ${formatTime(elapsedSeconds)})</span><span>記録完了</span>`;
+    
+    // 💡 記録完了の横にスタイリッシュな「×」削除ボタンを配置
+    liItem.innerHTML = `
+        <span>[${timeString}] ${purposeText} (計 ${formatTime(elapsedSeconds)})</span>
+        <div class="log-right" style="display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 0.85rem; opacity: 0.8;">記録完了</span>
+            <button class="delete-btn" style="background: none; border: none; color: #aaa; cursor: pointer; font-size: 1.1rem; padding: 2px 6px; transition: color 0.2s;">×</button>
+        </div>
+    `;
+    
+    // ホバー時の色変化（お好みでJSやCSSで調整可能）
+    const deleteBtn = liItem.querySelector('.delete-btn');
+    deleteBtn.addEventListener('mouseenter', () => { deleteBtn.style.color = '#ff5555'; });
+    deleteBtn.addEventListener('mouseleave', () => { deleteBtn.style.color = '#aaa'; });
+    
+    // 削除ボタンがクリックされたときの処理
+    deleteBtn.addEventListener('click', () => {
+        logList.removeChild(liItem);
+    });
+    
     logList.prepend(liItem);
 }
