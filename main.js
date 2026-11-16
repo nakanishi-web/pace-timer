@@ -1,4 +1,6 @@
+// ========================================
 // DOM要素の取得
+// ========================================
 const purposeSelect = document.getElementById('purpose-select');
 const targetMinutesInput = document.getElementById('target-minutes');
 const timerDisplay = document.getElementById('timer-display');
@@ -8,98 +10,162 @@ const pauseBtn = document.getElementById('pause-btn');
 const resetBtn = document.getElementById('reset-btn');
 const logList = document.getElementById('log-list');
 
+// ========================================
+// 状態管理用変数
+// ========================================
 let timerId = null;
-let elapsedSeconds = 0;    // 経過秒数（0からカウントアップ）
-let targetSeconds = 0;     // 目標秒数
-let isRunning = false;     // 稼働中かどうか
-let isPaused = false;      // 一時停止中かどうか
+let isRunning = false;
+let isPaused = false;
 
-// 秒数を "HH:MM:SS" 形式にフォーマットする関数
-function formatTime(seconds) {
-    const hrs = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    
-    const h = String(hrs).padStart(2, '0');
-    const m = String(mins).padStart(2, '0');
-    const s = String(secs).padStart(2, '0');
-    
-    return `${h}:${m}:${s}`;
+let targetSeconds = 25 * 60; // 目標時間（秒）
+let elapsedSeconds = 0;     // 経過時間（秒）
+
+// ========================================
+// ローカルストレージ関連の処理
+// ========================================
+const STORAGE_KEY = 'pace_timer_logs';
+
+// ローカルストレージにログ配列を保存する
+function saveLogsToStorage(logsArray) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(logsArray));
 }
 
-// 画面のタイマー表示を更新する関数
+// ローカルストレージからログを読み込んで復元する
+function loadLogs() {
+    const savedLogs = localStorage.getItem(STORAGE_KEY);
+    if (!savedLogs) return;
+
+    try {
+        const logsArray = JSON.parse(savedLogs);
+        // 保存されている配列を元に画面へ復元（保存時は新しいものが上なのでそのまま描画）
+        logsArray.forEach(log => {
+            renderLogItem(log.timeString, log.purposeText, log.elapsedText, false);
+        });
+    } catch (e) {
+        console.error('ログの読み込みに失敗しました:', e);
+    }
+}
+
+// 現在の画面上のリストから全ログのデータを集めてストレージを更新する
+function updateStorageFromDOM() {
+    const logsArray = [];
+    const items = logList.querySelectorAll('li');
+    
+    items.forEach(item => {
+        const timeString = item.dataset.time;
+        const purposeText = item.dataset.purpose;
+        const elapsedText = item.dataset.elapsed;
+        logsArray.push({ timeString, purposeText, elapsedText });
+    });
+    
+    saveLogsToStorage(logsArray);
+}
+
+// ========================================
+// ユーティリティ関数
+// ========================================
+function formatTime(totalSeconds) {
+    const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+    const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+    const seconds = String(Math.floor(totalSeconds % 60)).padStart(2, '0');
+    return `${hours}:${minutes}:${seconds}`;
+}
+
 function updateDisplay() {
     timerDisplay.textContent = formatTime(elapsedSeconds);
 }
 
-// 初期表示の設定（25分＝1500秒を目標にセット、表示は00:00:00から）
-targetMinutesInput.value = 25;
-targetSeconds = 25 * 60;
-elapsedSeconds = 0;
-updateDisplay();
+// ========================================
+// ログ描画・追加・削除の処理
+// ========================================
+function renderLogItem(timeString, purposeText, elapsedText, shouldSave = true) {
+    const liItem = document.createElement('li');
+    
+    // 後からデータを再取得しやすいようにカスタムデータ属性として保持させておく
+    liItem.dataset.time = timeString;
+    liItem.dataset.purpose = purposeText;
+    liItem.dataset.elapsed = elapsedText;
+    
+    liItem.innerHTML = `
+        <span class="log-text">[${timeString}] ${purposeText} (計 ${elapsedText})</span>
+        <div class="log-right" style="display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 0.85rem; opacity: 0.8;">記録完了</span>
+            <button class="delete-btn" style="background: none; border: none; color: #aaa; cursor: pointer; font-size: 1.1rem; padding: 2px 6px; transition: color 0.2s;">×</button>
+        </div>
+    `;
+    
+    const deleteBtn = liItem.querySelector('.delete-btn');
+    deleteBtn.addEventListener('mouseenter', () => { deleteBtn.style.color = '#ff5555'; });
+    deleteBtn.addEventListener('mouseleave', () => { deleteBtn.style.color = '#aaa'; });
+    
+    // 個別削除
+    deleteBtn.addEventListener('click', () => {
+        logList.removeChild(liItem);
+        updateStorageFromDOM(); // 削除後にストレージを更新
+    });
+    
+    logList.prepend(liItem);
 
-// 目標時間の入力値が変わったら目標秒数を更新
-targetMinutesInput.addEventListener('input', () => {
-    if (!isRunning && !isPaused) {
-        const mins = parseInt(targetMinutesInput.value) || 0;
-        targetSeconds = mins * 60;
+    // 新規追加時のみストレージを更新
+    if (shouldSave) {
+        updateStorageFromDOM();
     }
-});
+}
+
+function addLog() {
+    const purposeText = purposeSelect.options[purposeSelect.selectedIndex].text;
+    const now = new Date();
+    const timeString = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const elapsedText = formatTime(elapsedSeconds);
+    
+    renderLogItem(timeString, purposeText, elapsedText, true);
+}
 
 // ========================================
-// スタートボタンの処理
+// タイマー制御のイベントリスナー
+// ========================================
+
+targetMinutesInput.addEventListener('change', () => {
+    let val = parseInt(targetMinutesInput.value, 10);
+    if (isNaN(val) || val < 1) val = 1;
+    if (val > 180) val = 180;
+    targetMinutesInput.value = val;
+
+    targetSeconds = val * 60;
+});
+
 startBtn.addEventListener('click', () => {
-    if (!isRunning) {
-        // 再開でない場合は、現在の入力値を目標秒数として保持
-        if (!isPaused) {
-            const mins = parseInt(targetMinutesInput.value) || 25;
-            targetSeconds = mins * 60;
-        }
+    if (isRunning) return;
 
-        isRunning = true;
-        isPaused = false;
-        startBtn.disabled = true;
-        pauseBtn.disabled = false;
-        targetMinutesInput.disabled = true;
-        purposeSelect.disabled = true;
-        timerStatus.textContent = "計測中...";
-        timerStatus.classList.remove('overtime');
+    isRunning = true;
+    isPaused = false;
+    startBtn.disabled = true;
+    startBtn.textContent = "実行中";
+    pauseBtn.disabled = false;
+    targetMinutesInput.disabled = true;
+    purposeSelect.disabled = true;
+    timerStatus.textContent = "計測中...";
 
-        // 1秒ごとのカウントアップ処理
-        timerId = setInterval(() => {
-            elapsedSeconds++;
-
-            // 目標時間に達しているか、超えているかの判定
-            if (elapsedSeconds === targetSeconds) {
-                timerStatus.textContent = "目標時間到達！マイペース継続中...";
-                timerStatus.classList.add('overtime');
-            } else if (elapsedSeconds > targetSeconds) {
-                const overSec = elapsedSeconds - targetSeconds;
-                timerStatus.textContent = `超過タイム (+${formatTime(overSec)})`;
-                timerStatus.classList.add('overtime');
-            }
-
-            updateDisplay();
-        }, 1000);
-    }
+    timerId = setInterval(() => {
+        elapsedSeconds++;
+        updateDisplay();
+    }, 1000);
 });
 
-// 一時停止ボタンの処理
 pauseBtn.addEventListener('click', () => {
-    if (isRunning) {
-        clearInterval(timerId);
-        isRunning = false;
-        isPaused = true;
-        startBtn.disabled = false;
-        startBtn.textContent = "再開";
-        pauseBtn.disabled = true;
-        timerStatus.textContent = "一時停止中";
-    }
+    if (!isRunning) return;
+
+    clearInterval(timerId);
+    isRunning = false;
+    isPaused = true;
+    startBtn.disabled = false;
+    startBtn.textContent = "再開";
+    pauseBtn.disabled = true;
+    timerStatus.textContent = "一時停止中";
 });
 
-// リセット（終了・記録）ボタンの処理
 resetBtn.addEventListener('click', () => {
-    // 💡 稼働中または一時停止中で、かつ「30秒以上」計測していた場合のみログに残す
+    // 30秒以上計測していた場合のみログに残す
     if ((isRunning || isPaused) && elapsedSeconds >= 30) {
         addLog();
     }
@@ -113,39 +179,18 @@ resetBtn.addEventListener('click', () => {
     targetMinutesInput.disabled = false;
     purposeSelect.disabled = false;
     
-    // 経過時間をリセット
     elapsedSeconds = 0;
     timerStatus.textContent = "待機中";
     timerStatus.classList.remove('overtime');
     updateDisplay();
 });
 
-// ログ追加関数
-function addLog() {
-    const purposeText = purposeSelect.options[purposeSelect.selectedIndex].text;
-    const now = new Date();
-    const timeString = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    
-    const liItem = document.createElement('li');
-    
-    // 💡 記録完了の横にスタイリッシュな「×」削除ボタンを配置
-    liItem.innerHTML = `
-        <span>[${timeString}] ${purposeText} (計 ${formatTime(elapsedSeconds)})</span>
-        <div class="log-right" style="display: flex; align-items: center; gap: 12px;">
-            <span style="font-size: 0.85rem; opacity: 0.8;">記録完了</span>
-            <button class="delete-btn" style="background: none; border: none; color: #aaa; cursor: pointer; font-size: 1.1rem; padding: 2px 6px; transition: color 0.2s;">×</button>
-        </div>
-    `;
-    
-    // ホバー時の色変化（お好みでJSやCSSで調整可能）
-    const deleteBtn = liItem.querySelector('.delete-btn');
-    deleteBtn.addEventListener('mouseenter', () => { deleteBtn.style.color = '#ff5555'; });
-    deleteBtn.addEventListener('mouseleave', () => { deleteBtn.style.color = '#aaa'; });
-    
-    // 削除ボタンがクリックされたときの処理
-    deleteBtn.addEventListener('click', () => {
-        logList.removeChild(liItem);
-    });
-    
-    logList.prepend(liItem);
-}
+// ========================================
+// アプリ起動時の初期化処理
+// ========================================
+targetMinutesInput.value = 25;
+targetSeconds = 25 * 60;
+elapsedSeconds = 0;
+updateDisplay();
+
+loadLogs();
