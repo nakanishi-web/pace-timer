@@ -51,7 +51,17 @@
 
         <!-- 記録・ログ -->
         <aside class="log-section">
-            <h2>作業ログ</h2>
+            <div class="log-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h2 style="margin: 0;">作業ログ</h2>
+                <button id="clear-all-btn" class="btn text-btn" style="font-size: 0.85rem; color: #ff5555; background: none; border: none; cursor: pointer; padding: 4px 8px;">全削除</button>
+            </div>
+    
+            <!--合計作業時間のサマリー表示エリア -->
+            <div class="daily-summary" style="background: rgba(255, 255, 255, 0.05); padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center;">
+                <span>本日の合計作業時間</span>
+                <span id="today-total-time" style="font-weight: bold; font-family: monospace;">00:00:00</span>
+            </div>
+
             <ul id="log-list">
                 <!-- ログがここに -->
             </ul>
