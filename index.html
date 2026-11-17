@@ -46,12 +46,16 @@
                 <button id="start-btn" class="btn primary-btn">スタート</button>
                 <button id="pause-btn" class="btn secondary-btn" disabled>一時停止</button>
                 <button id="reset-btn" class="btn danger-btn">リセット</button>
+                <button id="finish-btn" class="btn success" disabled>終了・記録</button>
             </section>
         </main>
 
         <!-- 記録・ログ -->
         <aside class="log-section">
-            <h2>作業ログ</h2>
+            <div class="log-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h2 style="margin: 0;">作業ログ</h2>
+                <button id="clear-all-btn" class="btn text-btn" style="font-size: 0.85rem; color: #ff5555; background: none; border: none; cursor: pointer; padding: 4px 8px;">全削除</button>
+            </div>
             <ul id="log-list">
                 <!-- ログがここに -->
             </ul>

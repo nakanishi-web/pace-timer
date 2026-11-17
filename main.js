@@ -6,7 +6,9 @@ const timerStatus = document.getElementById('timer-status');
 const startBtn = document.getElementById('start-btn');
 const pauseBtn = document.getElementById('pause-btn');
 const resetBtn = document.getElementById('reset-btn');
+const finishBtn = document.getElementById('finish-btn');
 const logList = document.getElementById('log-list');
+const clearAllBtn = document.getElementById('clear-all-btn'); // 🌟 追加：全削除ボタンの取得
 
 let timerId = null;
 let elapsedSeconds = 0;    // 経過秒数（0からカウントアップ）
@@ -38,6 +40,33 @@ targetSeconds = 25 * 60;
 elapsedSeconds = 0;
 updateDisplay();
 
+// 初期状態では「終了・記録」ボタンを無効化
+finishBtn.disabled = true;
+
+// 🌟 【リロード対策】保存されていた一時停止状態があれば復元する
+const savedState = localStorage.getItem('pace_timer_state');
+if (savedState === 'paused') {
+    const savedSeconds = parseInt(localStorage.getItem('pace_timer_paused_seconds')) || 0;
+    if (savedSeconds > 0) {
+        elapsedSeconds = savedSeconds;
+        updateDisplay();
+        
+        isPaused = true;
+        startBtn.textContent = "再開";
+        pauseBtn.disabled = true;
+        finishBtn.disabled = false;
+        targetMinutesInput.disabled = true;
+        purposeSelect.disabled = true;
+        timerStatus.textContent = "一時停止中（復元）";
+    }
+}
+
+// 🌟 【追加】保存されていたログを起動時に復元する
+const savedLogs = localStorage.getItem('pace_timer_logs');
+if (savedLogs) {
+    logList.innerHTML = savedLogs;
+}
+
 // 目標時間の入力値が変わったら目標秒数を更新
 targetMinutesInput.addEventListener('input', () => {
     if (!isRunning && !isPaused) {
@@ -59,10 +88,15 @@ startBtn.addEventListener('click', () => {
         isPaused = false;
         startBtn.disabled = true;
         pauseBtn.disabled = false;
+        finishBtn.disabled = false;
         targetMinutesInput.disabled = true;
         purposeSelect.disabled = true;
         timerStatus.textContent = "計測中...";
         timerStatus.classList.remove('overtime');
+
+        // スタートしたら一時停止の保存データはクリア
+        localStorage.removeItem('pace_timer_state');
+        localStorage.removeItem('pace_timer_paused_seconds');
 
         // 1秒ごとのカウントアップ処理
         timerId = setInterval(() => {
@@ -92,14 +126,41 @@ pauseBtn.addEventListener('click', () => {
         startBtn.disabled = false;
         startBtn.textContent = "再開";
         pauseBtn.disabled = true;
+        finishBtn.disabled = false;
         timerStatus.textContent = "一時停止中";
+
+        // 🌟 【リロード対策】一時停止した瞬間の状態と秒数を保存
+        localStorage.setItem('pace_timer_state', 'paused');
+        localStorage.setItem('pace_timer_paused_seconds', elapsedSeconds);
     }
 });
 
-// リセット（終了・記録）ボタンの処理
+// リセット（純粋なやり直し）ボタンの処理
 resetBtn.addEventListener('click', () => {
-    // 💡 稼働中または一時停止中で、かつ「30秒以上」計測していた場合のみログに残す
-    if ((isRunning || isPaused) && elapsedSeconds >= 30) {
+    clearInterval(timerId);
+    isRunning = false;
+    isPaused = false;
+    startBtn.disabled = false;
+    startBtn.textContent = "スタート";
+    pauseBtn.disabled = true;
+    finishBtn.disabled = true;
+    targetMinutesInput.disabled = false;
+    purposeSelect.disabled = false;
+    
+    // 経過時間をリセット
+    elapsedSeconds = 0;
+    timerStatus.textContent = "待機中";
+    timerStatus.classList.remove('overtime');
+    updateDisplay();
+
+    // 🌟 【リロード対策】保存データを消去
+    localStorage.removeItem('pace_timer_state');
+    localStorage.removeItem('pace_timer_paused_seconds');
+});
+
+// 終了・記録ボタンの処理
+finishBtn.addEventListener('click', () => {
+    if (elapsedSeconds >= 30) {
         addLog();
     }
 
@@ -109,14 +170,19 @@ resetBtn.addEventListener('click', () => {
     startBtn.disabled = false;
     startBtn.textContent = "スタート";
     pauseBtn.disabled = true;
+    finishBtn.disabled = true;
     targetMinutesInput.disabled = false;
     purposeSelect.disabled = false;
-    
-    // 経過時間をリセット
+
+    // タイマー初期化
     elapsedSeconds = 0;
     timerStatus.textContent = "待機中";
     timerStatus.classList.remove('overtime');
     updateDisplay();
+
+    // 🌟 【リロード対策】保存データを消去
+    localStorage.removeItem('pace_timer_state');
+    localStorage.removeItem('pace_timer_paused_seconds');
 });
 
 // ログ追加関数
@@ -128,4 +194,17 @@ function addLog() {
     const liItem = document.createElement('li');
     liItem.innerHTML = `<span>[${timeString}] ${purposeText} (計 ${formatTime(elapsedSeconds)})</span><span>記録完了</span>`;
     logList.prepend(liItem);
+
+    // 🌟 【追加】現在のログ一覧をブラウザに保存する
+    localStorage.setItem('pace_timer_logs', logList.innerHTML);
+}
+
+// 🌟 【追加】全削除ボタンの処理（「削除しますか？」の確認ダイアログ付き）
+if (clearAllBtn) {
+    clearAllBtn.addEventListener('click', () => {
+        if (confirm('すべての作業ログを削除してもよろしいですか？')) {
+            logList.innerHTML = '';
+            localStorage.removeItem('pace_timer_logs');
+        }
+    });
 }
