@@ -9,6 +9,7 @@ const startBtn = document.getElementById('start-btn');
 const pauseBtn = document.getElementById('pause-btn');
 const resetBtn = document.getElementById('reset-btn');
 const logList = document.getElementById('log-list');
+const clearAllBtn = document.getElementById('clear-all-btn'); // 💡 追加：全削除ボタン
 
 // ========================================
 // 状態管理用変数
@@ -184,6 +185,19 @@ resetBtn.addEventListener('click', () => {
     timerStatus.classList.remove('overtime');
     updateDisplay();
 });
+
+// 💡 追加：全削除ボタンのクリックイベント
+if (clearAllBtn) {
+    clearAllBtn.addEventListener('click', () => {
+        const items = logList.querySelectorAll('li');
+        if (items.length === 0) return;
+
+        if (window.confirm('すべての作業ログを削除してもよろしいですか？')) {
+            logList.innerHTML = ''; // 画面上のリストを空にする
+            saveLogsToStorage([]);  // ローカルストレージ側も空の配列で上書き
+        }
+    });
+}
 
 // ========================================
 // アプリ起動時の初期化処理

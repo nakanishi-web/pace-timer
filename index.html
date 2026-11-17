@@ -51,11 +51,15 @@
 
         <!-- 記録・ログ -->
         <aside class="log-section">
-            <h2>作業ログ</h2>
+            <div class="log-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h2 style="margin: 0;">作業ログ</h2>
+                <button id="clear-all-btn" class="btn text-btn" style="font-size: 0.85rem; color: #ff5555; background: none; border: none; cursor: pointer; padding: 4px 8px;">全削除</button>
+            </div>
             <ul id="log-list">
                 <!-- ログがここに -->
             </ul>
         </aside>
+        
     </div>
 
     <script src="main.js"></script>
