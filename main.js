@@ -1,6 +1,8 @@
 // DOM要素の取得
 const purposeSelect = document.getElementById('purpose-select');
 const targetMinutesInput = document.getElementById('target-minutes');
+const presetRadios = document.querySelectorAll('input[name="target-preset"]');
+const customMinutesWrapper = document.getElementById('custom-minutes-wrapper');
 const timerDisplay = document.getElementById('timer-display');
 const timerStatus = document.getElementById('timer-status');
 const startBtn = document.getElementById('start-btn');
@@ -8,7 +10,10 @@ const pauseBtn = document.getElementById('pause-btn');
 const resetBtn = document.getElementById('reset-btn');
 const finishBtn = document.getElementById('finish-btn');
 const logList = document.getElementById('log-list');
-const clearAllBtn = document.getElementById('clear-all-btn'); // 🌟 追加：全削除ボタンの取得
+const clearAllBtn = document.getElementById('clear-all-btn');
+
+const STORAGE_PRESET_KEY = 'pace_timer_target_preset';
+const STORAGE_CUSTOM_MINUTES_KEY = 'pace_timer_custom_minutes';
 
 let timerId = null;
 let elapsedSeconds = 0;    // 経過秒数（0からカウントアップ）
@@ -21,11 +26,11 @@ function formatTime(seconds) {
     const hrs = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
-    
+
     const h = String(hrs).padStart(2, '0');
     const m = String(mins).padStart(2, '0');
     const s = String(secs).padStart(2, '0');
-    
+
     return `${h}:${m}:${s}`;
 }
 
@@ -34,45 +39,135 @@ function updateDisplay() {
     timerDisplay.textContent = formatTime(elapsedSeconds);
 }
 
-// 初期表示の設定（25分＝1500秒を目標にセット、表示は00:00:00から）
-targetMinutesInput.value = 25;
-targetSeconds = 25 * 60;
+// ラジオボタンの有効/無効を切り替える関数
+function setPresetDisabled(disabled) {
+    presetRadios.forEach((radio) => {
+        radio.disabled = disabled;
+    });
+}
+
+// 現在の目標時間設定を localStorage に保存する関数
+function saveTargetSetting() {
+    const selectedRadio = document.querySelector('input[name="target-preset"]:checked');
+    if (selectedRadio) {
+        localStorage.setItem(STORAGE_PRESET_KEY, selectedRadio.value);
+    }
+
+    const customMins = parseInt(targetMinutesInput.value, 10);
+    if (!Number.isNaN(customMins) && customMins > 0) {
+        localStorage.setItem(STORAGE_CUSTOM_MINUTES_KEY, String(customMins));
+    }
+}
+
+// 保存された目標時間設定を復元する関数
+function restoreTargetSetting() {
+    const savedPreset = localStorage.getItem(STORAGE_PRESET_KEY);
+    const savedCustomMinutes = parseInt(localStorage.getItem(STORAGE_CUSTOM_MINUTES_KEY), 10);
+
+    let initialMinutes = 30;
+
+    if (savedPreset === 'custom') {
+        const customRadio = document.querySelector('input[name="target-preset"][value="custom"]');
+        if (customRadio) {
+            customRadio.checked = true;
+        }
+        customMinutesWrapper.hidden = false;
+
+        initialMinutes = (!Number.isNaN(savedCustomMinutes) && savedCustomMinutes > 0)
+            ? savedCustomMinutes
+            : 30;
+        targetMinutesInput.value = initialMinutes;
+    } else if (['15', '30', '45', '60'].includes(savedPreset)) {
+        const presetRadio = document.querySelector(`input[name="target-preset"][value="${savedPreset}"]`);
+        if (presetRadio) {
+            presetRadio.checked = true;
+        }
+        customMinutesWrapper.hidden = true;
+        initialMinutes = parseInt(savedPreset, 10);
+        targetMinutesInput.value = initialMinutes;
+    } else {
+        const defaultRadio = document.querySelector('input[name="target-preset"][value="30"]');
+        if (defaultRadio) {
+            defaultRadio.checked = true;
+        }
+        customMinutesWrapper.hidden = true;
+        targetMinutesInput.value = initialMinutes;
+    }
+
+    targetSeconds = initialMinutes * 60;
+}
+
+// プリセット選択状態を反映する関数
+function handlePresetChange() {
+    const selectedRadio = document.querySelector('input[name="target-preset"]:checked');
+    if (!selectedRadio) return;
+
+    if (selectedRadio.value === 'custom') {
+        customMinutesWrapper.hidden = false;
+        const savedCustomMinutes = parseInt(localStorage.getItem(STORAGE_CUSTOM_MINUTES_KEY), 10);
+        if (!Number.isNaN(savedCustomMinutes) && savedCustomMinutes > 0) {
+            targetMinutesInput.value = savedCustomMinutes;
+            if (!isRunning && !isPaused) {
+                targetSeconds = savedCustomMinutes * 60;
+            }
+        }
+        targetMinutesInput.focus();
+    } else {
+        customMinutesWrapper.hidden = true;
+        const mins = parseInt(selectedRadio.value, 10) || 30;
+        targetMinutesInput.value = mins;
+        if (!isRunning && !isPaused) {
+            targetSeconds = mins * 60;
+        }
+    }
+
+    saveTargetSetting();
+}
+
+presetRadios.forEach((radio) => {
+    radio.addEventListener('change', handlePresetChange);
+});
+
+// 初期表示の設定（保存された設定があれば復元、表示は00:00:00から）
+restoreTargetSetting();
 elapsedSeconds = 0;
 updateDisplay();
 
 // 初期状態では「終了・記録」ボタンを無効化
 finishBtn.disabled = true;
 
-// 🌟 【リロード対策】保存されていた一時停止状態があれば復元する
+// 保存されていた一時停止状態があれば復元する
 const savedState = localStorage.getItem('pace_timer_state');
 if (savedState === 'paused') {
     const savedSeconds = parseInt(localStorage.getItem('pace_timer_paused_seconds')) || 0;
     if (savedSeconds > 0) {
         elapsedSeconds = savedSeconds;
         updateDisplay();
-        
+
         isPaused = true;
         startBtn.textContent = "再開";
         pauseBtn.disabled = true;
         finishBtn.disabled = false;
         targetMinutesInput.disabled = true;
+        setPresetDisabled(true);
         purposeSelect.disabled = true;
         timerStatus.textContent = "一時停止中（復元）";
     }
 }
 
-// 🌟 【追加】保存されていたログを起動時に復元する
+// 保存されていたログを起動時に復元する
 const savedLogs = localStorage.getItem('pace_timer_logs');
 if (savedLogs) {
     logList.innerHTML = savedLogs;
 }
 
-// 目標時間の入力値が変わったら目標秒数を更新
+// 目標時間の入力値が変わったら目標秒数を更新し、設定を保存
 targetMinutesInput.addEventListener('input', () => {
     if (!isRunning && !isPaused) {
         const mins = parseInt(targetMinutesInput.value) || 0;
         targetSeconds = mins * 60;
     }
+    saveTargetSetting();
 });
 
 // スタートボタンの処理
@@ -80,7 +175,7 @@ startBtn.addEventListener('click', () => {
     if (!isRunning) {
         // 再開でない場合は、現在の入力値を目標秒数として保持
         if (!isPaused) {
-            const mins = parseInt(targetMinutesInput.value) || 25;
+            const mins = parseInt(targetMinutesInput.value) || 30;
             targetSeconds = mins * 60;
         }
 
@@ -90,6 +185,7 @@ startBtn.addEventListener('click', () => {
         pauseBtn.disabled = false;
         finishBtn.disabled = false;
         targetMinutesInput.disabled = true;
+        setPresetDisabled(true);
         purposeSelect.disabled = true;
         timerStatus.textContent = "計測中...";
         timerStatus.classList.remove('overtime');
@@ -129,7 +225,7 @@ pauseBtn.addEventListener('click', () => {
         finishBtn.disabled = false;
         timerStatus.textContent = "一時停止中";
 
-        // 🌟 【リロード対策】一時停止した瞬間の状態と秒数を保存
+        //【リロード対策】一時停止した瞬間の状態と秒数を保存
         localStorage.setItem('pace_timer_state', 'paused');
         localStorage.setItem('pace_timer_paused_seconds', elapsedSeconds);
     }
@@ -145,15 +241,16 @@ resetBtn.addEventListener('click', () => {
     pauseBtn.disabled = true;
     finishBtn.disabled = true;
     targetMinutesInput.disabled = false;
+    setPresetDisabled(false);
     purposeSelect.disabled = false;
-    
+
     // 経過時間をリセット
     elapsedSeconds = 0;
     timerStatus.textContent = "待機中";
     timerStatus.classList.remove('overtime');
     updateDisplay();
 
-    // 🌟 【リロード対策】保存データを消去
+    // 保存データを消去
     localStorage.removeItem('pace_timer_state');
     localStorage.removeItem('pace_timer_paused_seconds');
 });
@@ -172,6 +269,7 @@ finishBtn.addEventListener('click', () => {
     pauseBtn.disabled = true;
     finishBtn.disabled = true;
     targetMinutesInput.disabled = false;
+    setPresetDisabled(false);
     purposeSelect.disabled = false;
 
     // タイマー初期化
@@ -180,7 +278,7 @@ finishBtn.addEventListener('click', () => {
     timerStatus.classList.remove('overtime');
     updateDisplay();
 
-    // 🌟 【リロード対策】保存データを消去
+    //【リロード対策】保存データを消去
     localStorage.removeItem('pace_timer_state');
     localStorage.removeItem('pace_timer_paused_seconds');
 });
@@ -190,16 +288,16 @@ function addLog() {
     const purposeText = purposeSelect.options[purposeSelect.selectedIndex].text;
     const now = new Date();
     const timeString = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    
+
     const liItem = document.createElement('li');
     liItem.innerHTML = `<span>[${timeString}] ${purposeText} (計 ${formatTime(elapsedSeconds)})</span><span>記録完了</span>`;
     logList.prepend(liItem);
 
-    // 🌟 【追加】現在のログ一覧をブラウザに保存する
+    // 現在のログ一覧をブラウザに保存する
     localStorage.setItem('pace_timer_logs', logList.innerHTML);
 }
 
-// 🌟 【追加】全削除ボタンの処理（「削除しますか？」の確認ダイアログ付き）
+// 全削除ボタンの処理（「削除しますか？」の確認ダイアログ付き）
 if (clearAllBtn) {
     clearAllBtn.addEventListener('click', () => {
         if (confirm('すべての作業ログを削除してもよろしいですか？')) {

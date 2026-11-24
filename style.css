@@ -1,5 +1,5 @@
 /* ========================================
-   1. 基本設定・変数
+1. 基本設定・変数
    ======================================== */
 :root {
     --bg-color: #121214;
@@ -15,7 +15,7 @@
     --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-* {
+- {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
@@ -33,7 +33,7 @@ body.dark-theme {
 }
 
 /* ========================================
-   2. レイアウト容器
+2. レイアウト容器
    ======================================== */
 .app-container {
     background-color: var(--card-bg);
@@ -46,7 +46,7 @@ body.dark-theme {
 }
 
 /* ========================================
-   3. ヘッダー
+3. ヘッダー
    ======================================== */
 .app-header {
     text-align: center;
@@ -67,7 +67,7 @@ body.dark-theme {
 }
 
 /* ========================================
-   4. 入力・選択セクション
+4. 入力・選択セクション
    ======================================== */
 .selection-section,
 .target-setting-section {
@@ -99,8 +99,68 @@ input[type="number"]:focus {
     border-color: var(--accent-color);
 }
 
+/* ラジオボタン風のプリセット選択・その他入力（追加分） */
+.section-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.preset-radio-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.preset-option {
+    flex: 1 1 auto;
+    min-width: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 10px;
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.preset-option:hover {
+    border-color: var(--accent-color);
+    color: var(--text-primary);
+}
+
+.preset-option input[type="radio"] {
+    display: none;
+}
+
+.preset-option:has(input[type="radio"]:checked) {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+    color: var(--text-primary);
+}
+
+.preset-option:has(input[type="radio"]:disabled) {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.custom-minutes-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.custom-minutes-wrapper[hidden] {
+    display: none;
+}
+
 /* ========================================
-   5. タイマー表示
+5. タイマー表示
    ======================================== */
 .timer-display-section {
     text-align: center;
@@ -131,7 +191,7 @@ input[type="number"]:focus {
 }
 
 /* ========================================
-   6. ボタン
+6. ボタン
    ======================================== */
 .controls-section {
     display: flex;
@@ -181,7 +241,7 @@ input[type="number"]:focus {
 }
 
 /* ========================================
-   7. ログエリア
+7. ログエリア
    ======================================== */
 .log-section {
     border-top: 1px solid var(--border-color);

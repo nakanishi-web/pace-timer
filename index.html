@@ -31,13 +31,39 @@
 
             <!-- 目標時間設定 -->
             <section class="target-setting-section">
-                <label for="target-minutes">目標時間(分)</label>
-                <input type="number" id="target-minutes" value="25" min="1" max="180">
+                <span class="section-label">目標時間(分)</span>
+                <div class="preset-radio-group" role="radiogroup" aria-label="目標時間の選択">
+                    <label class="preset-option">
+                        <input type="radio" name="target-preset" value="15">
+                        <span>15分</span>
+                    </label>
+                    <label class="preset-option">
+                        <input type="radio" name="target-preset" value="30" checked>
+                        <span>30分</span>
+                    </label>
+                    <label class="preset-option">
+                        <input type="radio" name="target-preset" value="45">
+                        <span>45分</span>
+                    </label>
+                    <label class="preset-option">
+                        <input type="radio" name="target-preset" value="60">
+                        <span>60分</span>
+                    </label>
+                    <label class="preset-option">
+                        <input type="radio" name="target-preset" value="custom">
+                        <span>その他</span>
+                    </label>
+                </div>
+
+                <div id="custom-minutes-wrapper" class="custom-minutes-wrapper" hidden>
+                    <label for="target-minutes">直接入力(分)</label>
+                    <input type="number" id="target-minutes" value="30" min="1" max="180">
+                </div>
             </section>
 
             <!-- タイマー表示ディスプレイ -->
             <section class="timer-display-section">
-                <div id="timer-display" class="timer-card">00:25:00</div>
+                <div id="timer-display" class="timer-card">00:00:00</div>
                 <div id="timer-status" class="status-message">待機中</div>
             </section>
 
