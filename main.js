@@ -20,6 +20,65 @@ let elapsedSeconds = 0;    // 経過秒数（0からカウントアップ）
 let targetSeconds = 0;     // 目標秒数
 let isRunning = false;     // 稼働中かどうか
 let isPaused = false;      // 一時停止中かどうか
+let audioCtx = null;       // Web Audio API 用コンテキスト
+
+// Web Audio API の AudioContext を取得・再開する関数
+function getAudioContext() {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return null;
+
+    if (!audioCtx) {
+        audioCtx = new AudioContextClass();
+    }
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume().catch(() => {});
+    }
+    return audioCtx;
+}
+
+// 1回分の3連チャイム（C5 -> E5 -> G5）を再生するヘルパー関数
+function playSingleChime(ctx, baseTime) {
+    const notes = [
+        { freq: 523.25, offset: 0,    duration: 0.28 }, // C5
+        { freq: 659.25, offset: 0.20, duration: 0.28 }, // E5
+        { freq: 783.99, offset: 0.40, duration: 0.42 }  // G5
+    ];
+
+    notes.forEach(({ freq, offset, duration }) => {
+        const startTime = baseTime + offset;
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(freq, startTime);
+
+        gainNode.gain.setValueAtTime(0.0001, startTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.13, startTime + 0.025);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+
+        oscillator.start(startTime);
+        oscillator.stop(startTime + duration + 0.02);
+    });
+}
+
+// 目標到達時の通知音（3連チャイムを2回リピート・自動停止）を再生する関数
+function playNotificationSound() {
+    try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+
+        const now = ctx.currentTime;
+        const repeatGap = 1.5; // 1回目と2回目の間隔（秒）
+
+        playSingleChime(ctx, now);
+        playSingleChime(ctx, now + repeatGap);
+    } catch (e) {
+        // 音声再生に失敗してもタイマー処理は継続する
+    }
+}
 
 // 秒数を "HH:MM:SS" 形式にフォーマットする関数
 function formatTime(seconds) {
@@ -173,6 +232,9 @@ targetMinutesInput.addEventListener('input', () => {
 // スタートボタンの処理
 startBtn.addEventListener('click', () => {
     if (!isRunning) {
+        // ユーザー操作のタイミングで AudioContext を有効化
+        getAudioContext();
+
         // 再開でない場合は、現在の入力値を目標秒数として保持
         if (!isPaused) {
             const mins = parseInt(targetMinutesInput.value) || 30;
@@ -202,6 +264,7 @@ startBtn.addEventListener('click', () => {
             if (elapsedSeconds === targetSeconds) {
                 timerStatus.textContent = "目標時間到達！マイペース継続中...";
                 timerStatus.classList.add('overtime');
+                playNotificationSound();
             } else if (elapsedSeconds > targetSeconds) {
                 const overSec = elapsedSeconds - targetSeconds;
                 timerStatus.textContent = `超過タイム (+${formatTime(overSec)})`;
